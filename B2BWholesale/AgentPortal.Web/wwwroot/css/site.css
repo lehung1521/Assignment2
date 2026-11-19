@@ -29,3 +29,150 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* =========================================
+   B2B Wholesale Agent Portal
+   Task 3.4 - Responsive UI
+========================================= */
+
+:root {
+    --primary-color: #2563eb;
+    --primary-dark: #1d4ed8;
+    --background-color: #f5f7fb;
+    --text-color: #1e293b;
+    --border-color: #e2e8f0;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    background: var(--background-color);
+    color: var(--text-color);
+    font-family: "Segoe UI", Arial, sans-serif;
+    min-height: 100vh;
+}
+
+/* Navbar */
+.navbar {
+    background: #ffffff !important;
+}
+
+.navbar-brand {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.nav-link {
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+    .nav-link:hover {
+        color: var(--primary-color) !important;
+    }
+
+/* Cards */
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+    .table thead th {
+        padding: 14px;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 14px;
+        vertical-align: middle;
+    }
+
+/* Home page */
+.hero-section {
+    padding: 60px 30px;
+    background: linear-gradient(120deg, #2563eb, #1e40af);
+    color: white;
+    border-radius: 18px;
+}
+
+    .hero-section h1 {
+        font-weight: 700;
+    }
+
+.feature-card {
+    height: 100%;
+    transition: transform 0.2s ease;
+}
+
+    .feature-card:hover {
+        transform: translateY(-4px);
+    }
+
+/* Footer */
+.footer {
+    background: white;
+    padding: 20px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 35px 20px;
+    }
+
+        .hero-section h1 {
+            font-size: 1.8rem;
+        }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .btn {
+        margin-bottom: 4px;
+    }
+}
+
+@media print {
+    .navbar,
+    .footer,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+    }
+}
