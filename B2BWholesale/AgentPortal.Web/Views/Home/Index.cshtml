@@ -1,8 +1,117 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-4">
+
+    <!-- Hero section -->
+    <section class="hero-section mb-5">
+
+        <h1>Welcome to B2B Wholesale</h1>
+
+        <p class="lead mt-3">
+            Your wholesale ordering and
+            order management portal.
+        </p>
+
+        @if (User.Identity?.IsAuthenticated == true &&
+             User.IsInRole("Agent"))
+        {
+            <p>
+                Welcome back,
+                <strong>@User.Identity.Name</strong>!
+            </p>
+
+            <a asp-controller="Orders"
+               asp-action="Index"
+               class="btn btn-light mt-3">
+                View My Orders
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Account"
+               asp-action="Login"
+               class="btn btn-light mt-3">
+                Agent Login
+            </a>
+        }
+
+    </section>
+
+    <!-- Features -->
+    <h2 class="fw-bold mb-4">
+        Agent Portal Features
+    </h2>
+
+    <div class="row g-4">
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body">
+
+                    <h5 class="fw-bold">
+                        Product Catalogue
+                    </h5>
+
+                    <p class="text-muted">
+                        Browse wholesale products,
+                        pricing and available stock.
+                    </p>
+
+                    <span class="badge bg-secondary">
+                        Coming soon
+                    </span>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body">
+
+                    <h5 class="fw-bold">
+                        My Orders
+                    </h5>
+
+                    <p class="text-muted">
+                        View your order history,
+                        order details and status.
+                    </p>
+
+                    <a asp-controller="Orders"
+                       asp-action="Index"
+                       class="btn btn-outline-primary">
+                        View Orders
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card feature-card shadow-sm">
+                <div class="card-body">
+
+                    <h5 class="fw-bold">
+                        Printable Invoices
+                    </h5>
+
+                    <p class="text-muted">
+                        Print invoices for your
+                        previous wholesale orders.
+                    </p>
+
+                    <a asp-controller="Orders"
+                       asp-action="Index"
+                       class="btn btn-outline-primary">
+                        Find an Invoice
+                    </a>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
