@@ -1,0 +1,107 @@
+﻿@model IEnumerable<B2BWholesale.Data.Models.Order>
+
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between
+        align-items-center flex-wrap gap-3 mb-4">
+
+        <div>
+            <h2 class="fw-bold mb-1">My Orders</h2>
+            <p class="text-muted mb-0">
+                Track and manage your wholesale orders.
+            </p>
+        </div>
+
+        <span class="badge bg-primary fs-6">
+            @Model.Count() Orders
+        </span>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            You have no orders yet.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Total Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var order in Model)
+                            {
+                                var total = order.OrderDetails.Sum(
+                                    d => d.Quantity * d.UnitAmount);
+
+                                var badgeClass = order.OrderStatus switch
+                                {
+                                    "Delivered" => "bg-success",
+                                    "Shipped" => "bg-primary",
+                                    "Pending" => "bg-warning text-dark",
+                                    "Cancelled" => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr>
+                                    <td class="fw-bold">
+                                        #@order.OrderID
+                                    </td>
+
+                                    <td>
+                                        @order.OrderDate.ToString("dd/MM/yyyy")
+                                    </td>
+
+                                    <td>
+                                        <span class="badge @badgeClass">
+                                            @order.OrderStatus
+                                        </span>
+                                    </td>
+
+                                    <td class="fw-semibold">
+                                        @total.ToString("N0") VND
+                                    </td>
+
+                                    <td>
+                                        <div class="d-flex gap-2">
+
+                                            <a asp-action="Details"
+                                               asp-route-id="@order.OrderID"
+                                               class="btn btn-sm btn-outline-primary">
+                                                Details
+                                            </a>
+
+                                            <a asp-action="Invoice"
+                                               asp-route-id="@order.OrderID"
+                                               class="btn btn-sm btn-outline-success">
+                                                Invoice
+                                            </a>
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    }
+</div>
