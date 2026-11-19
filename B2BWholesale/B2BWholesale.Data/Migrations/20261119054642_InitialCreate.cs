@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace B2BWholesale.Data.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc /> 
     public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
