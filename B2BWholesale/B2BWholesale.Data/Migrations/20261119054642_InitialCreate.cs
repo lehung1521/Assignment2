@@ -15,7 +15,7 @@ namespace B2BWholesale.Data.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "Agent",
-                columns: table => new
+                columns: table => new 
                 {
                     AgentID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
