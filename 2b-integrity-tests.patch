@@ -1,0 +1,142 @@
+diff --git a/Database/IntegrityTests.sql b/Database/IntegrityTests.sql
+new file mode 100644
+index 0000000..a6b9b23
+--- /dev/null
++++ b/Database/IntegrityTests.sql
+@@ -0,0 +1,136 @@
++/* =====================================================================
++   Integrity tests for B2BWholesaleDB (database created by EF Core migrations)
++   Task 2b - run in Visual Studio (SQL Server Object Explorer > New Query)
++   or SSMS, connected to (localdb)\MSSQLLocalDB.
++
++   Tests 1-7 must be BLOCKED (an error is raised and caught).
++   Test 8 (cascade) must WORK.
++   Every test runs inside a transaction that is rolled back, so the data
++   is NOT changed. Take ONE screenshot of the final result table.
++   ===================================================================== */
++USE B2BWholesaleDB;
++GO
++SET NOCOUNT ON;
++
++DECLARE @r TABLE (No INT, Test NVARCHAR(80), Expected NVARCHAR(40), Actual NVARCHAR(400));
++
++-- 1. Foreign key: order for an agent that does not exist
++BEGIN TRY
++    BEGIN TRAN;
++    INSERT INTO dbo.[Order] (AgentID) VALUES (9999);
++    ROLLBACK;
++    INSERT INTO @r VALUES (1, N'Insert order with missing agent', N'Blocked (FK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (1, N'Insert order with missing agent', N'Blocked (FK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 2. CHECK: stock cannot be negative
++BEGIN TRY
++    BEGIN TRAN;
++    UPDATE dbo.Item SET StockQuantity = -1 WHERE ItemID = 1;
++    ROLLBACK;
++    INSERT INTO @r VALUES (2, N'Set StockQuantity = -1', N'Blocked (CHECK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (2, N'Set StockQuantity = -1', N'Blocked (CHECK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 3. FK (no action): an agent that has orders cannot be deleted
++BEGIN TRY
++    BEGIN TRAN;
++    DELETE FROM dbo.Agent WHERE AgentID = 1;
++    ROLLBACK;
++    INSERT INTO @r VALUES (3, N'Delete agent 1 (has orders)', N'Blocked (FK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (3, N'Delete agent 1 (has orders)', N'Blocked (FK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 4. CHECK: invalid order status
++BEGIN TRY
++    BEGIN TRAN;
++    UPDATE dbo.[Order] SET OrderStatus = 'Lost' WHERE OrderID = 1;
++    ROLLBACK;
++    INSERT INTO @r VALUES (4, N'Set OrderStatus = Lost', N'Blocked (CHECK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (4, N'Set OrderStatus = Lost', N'Blocked (CHECK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 5. UNIQUE: duplicate username (all NOT NULL columns are supplied on purpose,
++--    so the error really comes from the UNIQUE index)
++BEGIN TRY
++    BEGIN TRAN;
++    INSERT INTO dbo.Users (UserName, email, [password], [lock], [Role], AgentID, FailedLoginCount)
++    VALUES ('admin01', 'dup@example.com', 'x', 0, 'Admin', NULL, 0);
++    ROLLBACK;
++    INSERT INTO @r VALUES (5, N'Duplicate UserName admin01', N'Blocked (UNIQUE)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (5, N'Duplicate UserName admin01', N'Blocked (UNIQUE)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 6. CHECK: an Agent user must be linked to an Agent
++BEGIN TRY
++    BEGIN TRAN;
++    INSERT INTO dbo.Users (UserName, email, [password], [lock], [Role], AgentID, FailedLoginCount)
++    VALUES ('agentx', 'agentx@example.com', 'x', 0, 'Agent', NULL, 0);
++    ROLLBACK;
++    INSERT INTO @r VALUES (6, N'Agent user without AgentID', N'Blocked (CHECK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (6, N'Agent user without AgentID', N'Blocked (CHECK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 7. CHECK: order line quantity must be greater than 0
++BEGIN TRY
++    BEGIN TRAN;
++    INSERT INTO dbo.OrderDetail (OrderID, ItemID, Quantity, UnitAmount) VALUES (1, 1, 0, 100);
++    ROLLBACK;
++    INSERT INTO @r VALUES (7, N'Order line with Quantity = 0', N'Blocked (CHECK)', N'NOT BLOCKED');
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (7, N'Order line with Quantity = 0', N'Blocked (CHECK)',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++-- 8. CASCADE (must work): deleting an order removes its detail lines
++DECLARE @before INT = (SELECT COUNT(*) FROM dbo.OrderDetail WHERE OrderID = 2);
++DECLARE @after  INT;
++BEGIN TRY
++    BEGIN TRAN;
++    DELETE FROM dbo.[Order] WHERE OrderID = 2;
++    SET @after = (SELECT COUNT(*) FROM dbo.OrderDetail WHERE OrderID = 2);
++    ROLLBACK;
++    INSERT INTO @r VALUES (8, N'Delete order 2 (cascade to OrderDetail)', N'Works, 0 lines left',
++        CONCAT(N'Works: ', @before, N' lines before, ', @after, N' after'));
++END TRY
++BEGIN CATCH
++    IF @@TRANCOUNT > 0 ROLLBACK;
++    INSERT INTO @r VALUES (8, N'Delete order 2 (cascade to OrderDetail)', N'Works, 0 lines left',
++        CONCAT(N'Error ', ERROR_NUMBER(), N': ', LEFT(ERROR_MESSAGE(), 300)));
++END CATCH;
++
++SELECT No, Test, Expected, Actual FROM @r ORDER BY No;
++
++-- Proof that nothing was changed (expected: 20, 20, 20, 30, 23)
++SELECT (SELECT COUNT(*) FROM dbo.Item)        AS Items,
++       (SELECT COUNT(*) FROM dbo.Agent)       AS Agents,
++       (SELECT COUNT(*) FROM dbo.[Order])     AS Orders,
++       (SELECT COUNT(*) FROM dbo.OrderDetail) AS OrderDetails,
++       (SELECT COUNT(*) FROM dbo.Users)       AS Users;
++GO
