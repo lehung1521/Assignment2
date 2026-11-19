@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AgentPortal.Web/AgentPortal.Web.csproj" />
+  <Project Path="B2BWholesale.Data/B2BWholesale.Data.csproj" />
+  <Project Path="B2BWholesale.Tests/B2BWholesale.Tests.csproj" />
+  <Project Path="BackOffice.WinForms/BackOffice.WinForms.csproj" />
+</Solution>
