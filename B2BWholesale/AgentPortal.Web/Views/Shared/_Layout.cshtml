@@ -64,6 +64,22 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link"
+                                   asp-controller="Catalog"
+                                   asp-action="Index">
+                                    Catalogue
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="OrderEntry"
+                                   asp-action="Create">
+                                    New Order
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link"
                                    asp-controller="Orders"
                                    asp-action="Index">
                                     My Orders
@@ -118,6 +134,14 @@
 
     <div class="container">
         <main role="main" class="pb-3">
+            @if (TempData["Success"] is string successMessage)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @successMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
             @RenderBody()
         </main>
     </div>

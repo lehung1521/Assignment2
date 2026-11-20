@@ -1,0 +1,273 @@
+@model AgentPortal.Web.Models.ViewModels.CreateOrderViewModel
+
+@{
+    ViewData["Title"] = "New Order";
+    var errors = ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">New Wholesale Order</h2>
+            <p class="text-muted mb-0">
+                Add one or more items, check the total, then place the order.
+                Stock is reserved when the order is placed.
+            </p>
+        </div>
+
+        <a asp-controller="Catalog"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            Back to Catalogue
+        </a>
+    </div>
+
+    @if (errors.Count > 0)
+    {
+        <div class="alert alert-danger" role="alert">
+            <ul class="mb-0">
+                @foreach (var message in errors)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-action="Create" method="post" id="orderForm" novalidate>
+        <div class="row g-4">
+
+            <!-- Add item (detail entry) -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="mb-3">Add item</h5>
+
+                        <label for="itemSelect" class="form-label">Item</label>
+                        <select id="itemSelect" class="form-select"></select>
+                        <div id="itemInfo" class="form-text mb-3"></div>
+
+                        <label for="qtyInput" class="form-label">Quantity (packs)</label>
+                        <input id="qtyInput" type="number" min="1" step="1" value="1" class="form-control" />
+
+                        <button type="button" id="addLineBtn" class="btn btn-primary w-100 mt-3">
+                            Add to order
+                        </button>
+                        <div id="lineError" class="text-danger small mt-2" role="alert"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order lines (master) -->
+            <div class="col-lg-7">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="mb-3">Order lines</h5>
+
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Item</th>
+                                        <th style="width: 120px;">Qty</th>
+                                        <th class="text-end">Unit price</th>
+                                        <th class="text-end">Line total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="linesBody"></tbody>
+                            </table>
+                        </div>
+
+                        <div id="emptyMessage" class="text-muted text-center py-3">
+                            No items yet. Choose an item on the left.
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                            <span class="fs-5 fw-bold">Total</span>
+                            <span class="fs-4 fw-bold text-primary" id="grandTotal">0 VND</span>
+                        </div>
+
+                        <div id="hiddenInputs"></div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <a asp-controller="Orders" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" id="submitBtn" class="btn btn-success px-4" disabled>
+                                Place order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const items = @Json.Serialize(Model.Items);
+            const initialLines = @Json.Serialize(Model.Lines);
+
+            const byId = new Map(items.map(i => [i.itemId, i]));
+            let lines = [];
+
+            const select = document.getElementById('itemSelect');
+            const info = document.getElementById('itemInfo');
+            const qty = document.getElementById('qtyInput');
+            const addBtn = document.getElementById('addLineBtn');
+            const lineError = document.getElementById('lineError');
+            const body = document.getElementById('linesBody');
+            const empty = document.getElementById('emptyMessage');
+            const totalEl = document.getElementById('grandTotal');
+            const hidden = document.getElementById('hiddenInputs');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const money = n => Number(n).toLocaleString('en-US') + ' VND';
+
+            // --- item drop-down ---
+            items.forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i.itemId;
+                opt.textContent = i.itemName + ' (' + i.size + ') - ' + money(i.price)
+                    + (i.stock === 0 ? ' - out of stock' : '');
+                opt.disabled = i.stock === 0;
+                select.appendChild(opt);
+            });
+
+            function showInfo() {
+                const item = byId.get(parseInt(select.value, 10));
+                info.textContent = item ? 'Available: ' + item.stock + ' pack(s)' : '';
+            }
+            select.addEventListener('change', showInfo);
+
+            function qtyInLines(itemId) {
+                const found = lines.find(l => l.itemId === itemId);
+                return found ? found.quantity : 0;
+            }
+
+            // --- add a line (duplicate items are merged) ---
+            addBtn.addEventListener('click', function () {
+                lineError.textContent = '';
+                const itemId = parseInt(select.value, 10);
+                const q = parseInt(qty.value, 10);
+                const item = byId.get(itemId);
+
+                if (!item) { lineError.textContent = 'Please choose an item.'; return; }
+                if (!Number.isInteger(q) || q < 1) { lineError.textContent = 'Quantity must be at least 1.'; return; }
+
+                const wanted = qtyInLines(itemId) + q;
+                if (wanted > item.stock) {
+                    lineError.textContent = 'Only ' + item.stock + ' pack(s) of this item are available.';
+                    return;
+                }
+
+                const existing = lines.find(l => l.itemId === itemId);
+                if (existing) { existing.quantity = wanted; } else { lines.push({ itemId: itemId, quantity: q }); }
+                qty.value = 1;
+                render();
+            });
+
+            // --- draw the order lines, the total and the hidden form fields ---
+            function render() {
+                body.replaceChildren();
+                hidden.replaceChildren();
+
+                let total = 0;
+                let valid = lines.length > 0;
+
+                lines.forEach((line, index) => {
+                    const item = byId.get(line.itemId);
+                    const price = item ? item.price : 0;
+                    const lineTotal = price * line.quantity;
+                    total += lineTotal;
+                    const overStock = !item || line.quantity > item.stock || line.quantity < 1;
+                    if (overStock) valid = false;
+
+                    const tr = document.createElement('tr');
+
+                    const nameTd = document.createElement('td');
+                    const nameStrong = document.createElement('div');
+                    nameStrong.className = 'fw-semibold';
+                    nameStrong.textContent = item ? item.itemName : 'Item #' + line.itemId + ' (unavailable)';
+                    const sizeSmall = document.createElement('div');
+                    sizeSmall.className = 'text-muted small';
+                    sizeSmall.textContent = item ? item.size : '';
+                    nameTd.append(nameStrong, sizeSmall);
+                    if (overStock) {
+                        const warn = document.createElement('div');
+                        warn.className = 'text-danger small';
+                        warn.textContent = item ? 'Only ' + item.stock + ' available.' : 'This item can no longer be ordered.';
+                        nameTd.appendChild(warn);
+                    }
+
+                    const qtyTd = document.createElement('td');
+                    const qtyInput = document.createElement('input');
+                    qtyInput.type = 'number';
+                    qtyInput.min = '1';
+                    qtyInput.step = '1';
+                    qtyInput.value = line.quantity;
+                    qtyInput.className = 'form-control form-control-sm' + (overStock ? ' is-invalid' : '');
+                    qtyInput.addEventListener('change', function () {
+                        const v = parseInt(qtyInput.value, 10);
+                        line.quantity = Number.isInteger(v) && v > 0 ? v : 1;
+                        render();
+                    });
+                    qtyTd.appendChild(qtyInput);
+
+                    const priceTd = document.createElement('td');
+                    priceTd.className = 'text-end';
+                    priceTd.textContent = money(price);
+
+                    const totalTd = document.createElement('td');
+                    totalTd.className = 'text-end fw-semibold';
+                    totalTd.textContent = money(lineTotal);
+
+                    const removeTd = document.createElement('td');
+                    removeTd.className = 'text-end';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.addEventListener('click', function () {
+                        lines.splice(index, 1);
+                        render();
+                    });
+                    removeTd.appendChild(removeBtn);
+
+                    tr.append(nameTd, qtyTd, priceTd, totalTd, removeTd);
+                    body.appendChild(tr);
+
+                    // fields posted to the server (Lines[0].ItemId, Lines[0].Quantity, ...)
+                    [['ItemId', line.itemId], ['Quantity', line.quantity]].forEach(pair => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'Lines[' + index + '].' + pair[0];
+                        input.value = pair[1];
+                        hidden.appendChild(input);
+                    });
+                });
+
+                empty.style.display = lines.length === 0 ? '' : 'none';
+                totalEl.textContent = money(total);
+                submitBtn.disabled = !valid;
+            }
+
+            // restore lines after a failed submit or a pre-selected item
+            (initialLines || []).forEach(l => {
+                const existing = lines.find(x => x.itemId === l.itemId);
+                if (existing) { existing.quantity += l.quantity; } else { lines.push({ itemId: l.itemId, quantity: l.quantity }); }
+            });
+
+            showInfo();
+            render();
+        })();
+    </script>
+}
