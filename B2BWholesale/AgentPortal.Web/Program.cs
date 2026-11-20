@@ -1,5 +1,6 @@
 
 using B2BWholesale.Data;
+using B2BWholesale.Data.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -11,6 +12,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
+
+// AN - TASK 3.2: catalogue + transactional order placement
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<IOrderPlacementService, OrderPlacementService>();
 
 // MVC
 builder.Services.AddControllersWithViews();
