@@ -25,6 +25,16 @@ internal static class AppConfig
         }
     }
 
+    /// <summary>Dashboard low-stock threshold, read from the appSettings section of App.config.</summary>
+    public static int LowStockThreshold
+    {
+        get
+        {
+            var raw = ConfigurationManager.AppSettings["LowStockThreshold"];
+            return int.TryParse(raw, out var value) && value >= 0 ? value : 20;
+        }
+    }
+
     public static AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

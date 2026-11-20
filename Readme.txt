@@ -48,3 +48,13 @@ Test accounts (seed data):
 - Admin (WinForms) : admin01 / Admin@123
 - Agent (Web)      : agent01 / Agent@123
 - agent19 is locked on purpose (to test the lock feature).
+
+Task 3.2 (Agent Portal): log in as agent01, open "Catalogue" or "New Order", add several items and place the order.
+- The Order, its OrderDetails and the stock deduction run in ONE database transaction (OrderPlacementService).
+- Try to order more than the stock (for example 9 packs of "Bánh quy Cosy", stock 8): the whole order is blocked and nothing changes.
+- The new order appears in "My Orders" (web) and in the Orders tab of the WinForms app.
+
+Task 1.4 (WinForms): log in as admin01 and open the "Dashboard" tab.
+- Best-selling items, low-stock warning (red rows) and revenue by agent, with date range / Top N / agent filters.
+- The default low-stock threshold (20) is stored in BackOffice.WinForms/App.config (appSettings, key LowStockThreshold).
+- Cancelled orders are not counted as sales.
