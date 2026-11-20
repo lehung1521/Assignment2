@@ -20,7 +20,7 @@ namespace BackOffice.WinForms
                 {
                     if (!dbContext.Database.CanConnect())
                     {
-                        MessageBox.Show("Cannot connect to B2BWholesaleDB. Run Database/B2BWholesaleDB.sql and verify App.config.",
+                        MessageBox.Show("Cannot connect to B2BWholesaleDB. Create the database with Update-Database (see Readme.txt) and verify the connection string in App.config.",
                             "Database Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
@@ -38,6 +38,7 @@ namespace BackOffice.WinForms
                 var orderService = new OrderManagementService(dbContext);
                 var manifestService = new ShippingManifestService(dbContext);
                 var manifestPdfGenerator = new ShippingManifestPdfGenerator();
+                var dashboardService = new DashboardService(dbContext);
 
                 Application.Run(new LoginForm(
                     authenticationService,
@@ -47,6 +48,7 @@ namespace BackOffice.WinForms
                         orderService,
                         manifestService,
                         manifestPdfGenerator,
+                        dashboardService,
                         user)));
             }
         }

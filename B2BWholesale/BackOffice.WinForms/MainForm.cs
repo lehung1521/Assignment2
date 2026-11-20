@@ -10,6 +10,8 @@ namespace BackOffice.WinForms
         private readonly IOrderManagementService _orderService;
         private readonly IShippingManifestService _manifestService;
         private readonly IShippingManifestPdfGenerator _manifestPdfGenerator;
+        private readonly IDashboardService _dashboardService;
+        private DashboardControl? _dashboardControl;
         private readonly User _currentUser;
         private TabControl tabControl = null!;
 
@@ -19,6 +21,7 @@ namespace BackOffice.WinForms
             IOrderManagementService orderService,
             IShippingManifestService manifestService,
             IShippingManifestPdfGenerator manifestPdfGenerator,
+            IDashboardService dashboardService,
             User currentUser)
         {
             InitializeComponent();
@@ -27,6 +30,7 @@ namespace BackOffice.WinForms
             _orderService = orderService;
             _manifestService = manifestService;
             _manifestPdfGenerator = manifestPdfGenerator;
+            _dashboardService = dashboardService;
             _currentUser = currentUser;
             this.Text = $"B2B Wholesale - Admin Dashboard ({currentUser.UserName})";
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -40,6 +44,7 @@ namespace BackOffice.WinForms
             LoadItemsTab();
             LoadAgentsTab();
             LoadOrdersTab();
+            LoadDashboardTab();
         }
 
         private void InitializeTabControl()
@@ -50,12 +55,35 @@ namespace BackOffice.WinForms
             var tabItems = new TabPage("Items");
             var tabAgents = new TabPage("Agents");
             var tabOrders = new TabPage("Orders");
+            var tabDashboard = new TabPage("Dashboard");
 
             tabControl.TabPages.Add(tabItems);
             tabControl.TabPages.Add(tabAgents);
             tabControl.TabPages.Add(tabOrders);
+            tabControl.TabPages.Add(tabDashboard);
+
+            // Task 1.4: refresh the dashboard every time its tab is opened (new orders / agents / stock)
+            tabControl.SelectedIndexChanged += (s, e) =>
+            {
+                if (tabControl.SelectedTab == tabDashboard)
+                {
+                    _dashboardControl?.Reload();
+                }
+            };
 
             this.Controls.Add(tabControl);
+        }
+
+        // TASK 1.4 - Dashboard tab
+        private void LoadDashboardTab()
+        {
+            var tabDashboard = tabControl.TabPages[3];
+            tabDashboard.Controls.Clear();
+
+            _dashboardControl = new DashboardControl(
+                _dashboardService, _agentService, AppConfig.LowStockThreshold);
+            tabDashboard.Controls.Add(_dashboardControl);
+            _dashboardControl.Reload();
         }
 
         private void LoadItemsTab()
